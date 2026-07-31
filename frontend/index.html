@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Science Facts Bot</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; max-width: 760px; margin: 0 auto; padding: 24px; background: #f7f7f5; color: #222; line-height: 1.6; }
+  h1 { margin-bottom: 8px; }
+  .subtitle { color: #555; margin-bottom: 24px; }
+  .card { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); margin-bottom: 16px; }
+  button, .pill { padding: 10px 16px; border: none; border-radius: 8px; background: #0f5e9e; color: #fff; cursor: pointer; font-size: 1rem; }
+  button:hover { background: #0a487a; }
+  .fact { font-size: 1.1rem; }
+  .meta { color: #666; font-size: 0.9rem; margin-top: 12px; }
+  input[type="text"] { padding: 10px; border: 1px solid #ccc; border-radius: 8px; width: 100%; max-width: 420px; margin-right: 8px; font-size: 1rem; }
+  .search-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  ul { line-height: 1.8; padding-left: 20px; }
+  a { color: #0f5e9e; }
+  .pill { display: inline-block; margin: 4px 4px 0 0; background: #e8f0f8; color: #0f5e9e; cursor: pointer; font-size: 0.9rem; }
+  .pill:hover { background: #d0e3f4; }
+  .muted { color: #777; }
+  .loading { color: #777; }
+  .error { color: #c00; }
+</style>
+</head>
+<body>
+  <h1>Science Facts Bot</h1>
+  <p class="subtitle">A Telegram bot and web admin with 10,000 curated science facts. All search and randomization happen in your browser.</p>
+
+  <div class="card">
+    <h2>Random fact</h2>
+    <p class="fact" id="fact"><span class="loading">Loading facts…</span></p>
+    <p class="meta" id="fact-meta"></p>
+    <button onclick="loadFact()">New fact</button>
+  </div>
+
+  <div class="card">
+    <h2>Search</h2>
+    <div class="search-row">
+      <input id="q" type="text" placeholder="e.g. tree, neuron, planet" onkeydown="if(event.key==='Enter') searchFacts()" />
+      <button onclick="searchFacts()">Search</button>
+    </div>
+    <p id="result-count" class="muted"></p>
+    <ul id="results"></ul>
+  </div>
+
+  <div class="card">
+    <h2>Categories</h2>
+    <p class="muted" id="cat-count"></p>
+    <div id="categories"><span class="loading">Loading…</span></div>
+  </div>
+
+  <div class="card">
+    <h2>Stats</h2>
+    <ul id="stats"><span class="loading">Loading…</span></ul>
+  </div>
+
+  <script>
+    let facts = [];
+    let byCategory = {};
+
+    async function init() {
+      try {
+        const res = await fetch('facts.json');
+        if (!res.ok) throw new Error(res.statusText);
+        facts = await res.json();
+        byCategory = {};
+        facts.forEach((fact, id) => {
+          fact.id = id;
+          const cat = fact.category || 'general';
+          byCategory[cat] = byCategory[cat] || [];
+          byCategory[cat].push(id);
+        });
+        document.getElementById('fact').innerHTML = '';
+        loadFact();
+        renderCategories();
+        renderStats();
+      } catch (err) {
+        document.getElementById('fact').innerHTML = '<span class="error">Could not load facts: ' + err.message + '</span>';
+      }
+    }
+
+    function loadFact(category) {
+      let ids = facts.map((_, i) => i);
+      if (category && byCategory[category]) ids = byCategory[category];
+      const id = ids[Math.floor(Math.random() * ids.length)];
+      const fact = facts[id];
+      document.getElementById('fact').textContent = fact.text;
+      document.getElementById('fact-meta').textContent = 'Category: ' + fact.category + ' | Fact #' + (id + 1);
+    }
+
+    function searchFacts() {
+      const q = document.getElementById('q').value.trim().toLowerCase();
+      const list = document.getElementById('results');
+      const count = document.getElementById('result-count');
+      if (!q) { list.innerHTML = ''; count.textContent = ''; return; }
+      const results = [];
+      for (let i = 0; i < facts.length; i++) {
+        const f = facts[i];
+        const text = (f.text || '').toLowerCase();
+        const cat = (f.category || '').toLowerCase();
+        if (text.includes(q) || cat.includes(q)) {
+          results.push({ id: i, ...f });
+          if (results.length >= 20) break;
+        }
+      }
+      count.textContent = `Showing ${results.length} result${results.length === 1 ? '' : 's'}`;
+      list.innerHTML = results.map(r => `<li>${r.text}<br><span class="meta">${r.category}</span></li>`).join('');
+    }
+
+    function renderCategories() {
+      const cats = Object.keys(byCategory).sort();
+      document.getElementById('cat-count').textContent = `${cats.length} categories`;
+      document.getElementById('categories').innerHTML = cats.map(c =>
+        `<span class="pill" onclick="loadFact('${c.replace(/'/g, "\\'")}')">${c}</span>`
+      ).join('');
+    }
+
+    function renderStats() {
+      document.getElementById('stats').innerHTML = `
+        <li>Total facts: ${facts.toLocaleString()}</li>
+        <li>Categories: ${Object.keys(byCategory).length}</li>
+      `;
+    }
+
+    init();
+  </script>
+</body>
+</html>
