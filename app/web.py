@@ -90,10 +90,11 @@ HTML_PAGE = """<!doctype html>
 """
 
 
-def create_app(store: FactsStore | None = None, db: FactsDatabase | None = None) -> FastAPI:
+def register_routes(
+    app: FastAPI, store: FactsStore | None = None, db: FactsDatabase | None = None
+) -> None:
     store = store or FactsStore()
     db = db or FactsDatabase()
-    app = FastAPI(title="Science Facts Bot", version="1.0.0")
 
     @app.get("/", response_class=HTMLResponse)
     async def root():
@@ -129,4 +130,8 @@ def create_app(store: FactsStore | None = None, db: FactsDatabase | None = None)
             return JSONResponse({"detail": "Not found"}, status_code=404)
         return {**fact, "id": fact_id}
 
+
+def create_app(store: FactsStore | None = None, db: FactsDatabase | None = None) -> FastAPI:
+    app = FastAPI(title="Science Facts Bot", version="1.0.0")
+    register_routes(app, store, db)
     return app

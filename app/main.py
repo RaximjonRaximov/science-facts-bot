@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from .bot import build_bot
 from .db import FactsDatabase
 from .facts import FactsStore
-from .web import create_app
+from .web import register_routes
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -38,8 +38,12 @@ def make_lifespan(store: FactsStore, db: FactsDatabase):
 def build_app() -> FastAPI:
     store = FactsStore()
     db = FactsDatabase()
-    app = create_app(store, db)
-    app.router.lifespan_context = make_lifespan(store, db)
+    app = FastAPI(
+        title="Science Facts Bot",
+        version="1.0.0",
+        lifespan=make_lifespan(store, db),
+    )
+    register_routes(app, store, db)
     return app
 
 
