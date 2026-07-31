@@ -1,0 +1,2 @@
+include data/facts.json
+recursive-include data *.json

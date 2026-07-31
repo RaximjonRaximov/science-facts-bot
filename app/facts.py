@@ -3,7 +3,7 @@ import random
 from pathlib import Path
 from typing import Any
 
-DATA_PATH = Path(__file__).parent.parent / "data" / "facts.json"
+DATA_PATH = Path(__file__).parent / "data" / "facts.json"
 
 
 class FactsStore:
